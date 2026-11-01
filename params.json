@@ -1,0 +1,19 @@
+{
+  "_comment": "Validated by sweep.py (70/30), validate.py and _session_check.py. Only XAUUSD survived all three. USDCAD was dropped: PF collapses 1.09 -> 1.03 inside the live 07-17 UTC window.",
+  "_default": {
+    "lookback": 20,
+    "exit_lookback": 10,
+    "adx_min": 22.0,
+    "min_stop_atr": 2.0,
+    "reward_risk": 3.0,
+    "trail_atr": 2.5
+  },
+  "XAUUSD": {
+    "lookback": 20,
+    "exit_lookback": 10,
+    "adx_min": 22.0,
+    "min_stop_atr": 2.0,
+    "reward_risk": 3.0,
+    "trail_atr": 2.5
+  }
+}

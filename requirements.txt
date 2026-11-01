@@ -1,0 +1,8 @@
+# NOTE: MetaTrader5 only installs on Windows AND only supports Python up to 3.14.
+# Use Python 3.13 or 3.14 for this project — 3.15 has no MetaTrader5 wheel yet.
+MetaTrader5>=5.0.45
+pandas>=2.0
+numpy>=1.26
+python-dotenv>=1.0
+fastapi>=0.110
+uvicorn>=0.29

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forex Bot — Dashboard</title>
+<script src="/static/lightweight-charts.js"></script>
+<style>
+  :root {
+    --bg: #080b11;
+    --panel: #0e131c;
+    --panel-2: #121926;
+    --line: #1c2534;
+    --text: #e7edf6;
+    --muted: #7d8ba2;
+    --green: #3ddc84;
+    --red: #ff5d6c;
+    --amber: #ffb020;
+    --blue: #4c8dff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 20px; }
+  header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px;
+    border-radius: 999px; font-size: 12px; background: var(--panel-2);
+    border: 1px solid var(--line); color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot.bad { background: var(--red); }
+  .dot.warn { background: var(--amber); }
+  .spacer { flex: 1; }
+  button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  }
+  button:hover { border-color: #2c3a50; }
+  button.danger { border-color: #4a1f26; color: var(--red); }
+  button.danger:hover { background: #2a1116; }
+  .banner {
+    display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+    border: 1px solid #4a3a12; background: #1d1608; color: var(--amber); font-size: 13px;
+  }
+  .banner.show { display: block; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .9px; }
+  .card .value { font-size: 22px; font-weight: 600; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .card .sub { color: var(--muted); font-size: 11px; margin-top: 3px; }
+  .up { color: var(--green); } .down { color: var(--red); }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .9px; color: var(--muted); margin: 0 0 12px; }
+  #chart { width: 100%; height: 300px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 7px 8px; border-bottom: 1px solid #141b26; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); padding: 14px 8px; font-size: 13px; }
+  .notes { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+  .note { display: flex; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--panel-2); border-radius: 8px; }
+  .note span:last-child { color: var(--muted); text-align: right; }
+  .section { margin-top: 16px; }
+  .strip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .chip {
+    font-size: 11px; color: var(--muted); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip b { color: var(--text); font-weight: 600; }
+  .bar { position: relative; height: 4px; background: var(--line); border-radius: 3px; min-width: 60px; }
+  .bar i { position: absolute; top: 0; bottom: 0; background: var(--blue); border-radius: 3px; }
+  .near { color: var(--amber); }
+  footer { color: var(--muted); font-size: 11px; margin-top: 22px; text-align: center; }
+  .kbd { font-family: Consolas, monospace; background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Forex Bot</h1>
+    <span class="pill"><span id="connDot" class="dot"></span><span id="connText">connecting…</span></span>
+    <span class="pill" id="modePill">—</span>
+    <span class="pill" id="statePill">idle</span>
+    <div class="spacer"></div>
+    <button id="pauseBtn">Pause</button>
+    <button id="resumeBtn">Resume</button>
+    <button id="killBtn" class="danger">Kill switch</button>
+  </header>
+
+  <div id="banner" class="banner"></div>
+
+  <div class="cards">
+    <div class="card"><div class="label">Balance</div><div class="value" id="balance">—</div><div class="sub" id="server">—</div></div>
+    <div class="card"><div class="label">Equity</div><div class="value" id="equity">—</div><div class="sub" id="freeMargin">—</div></div>
+    <div class="card"><div class="label">Floating P/L</div><div class="value" id="floating">—</div><div class="sub" id="openCount">—</div></div>
+    <div class="card"><div class="label">Closed today</div><div class="value" id="dayPnl">—</div><div class="sub">realised</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Equity</h2>
+      <div id="chart"></div>
+    </div>
+    <div class="panel">
+      <h2>What it's thinking</h2>
+      <div id="notes" class="notes"><div class="empty">waiting for the engine…</div></div>
+    </div>
+  </div>
+
+  <div class="panel section">
+    <h2>Live readout</h2>
+    <div id="strategyStrip" class="strip"></div>
+    <table>
+      <thead><tr><th>Symbol</th><th>Trend</th><th>ADX</th><th>ATR</th><th>Price</th><th>Buy trigger</th><th>Sell trigger</th><th>Spread</th><th>Action</th></tr></thead>
+      <tbody id="decisions"></tbody>
+    </table>
+  </div>
+
+  <div class="panel section">
+    <h2>Open positions</h2>
+    <table>
+      <thead><tr><th>Symbol</th><th>Side</th><th>Vol</th><th>Entry</th><th>Now</th><th>SL</th><th>TP</th><th>P/L</th></tr></thead>
+      <tbody id="positions"></tbody>
+    </table>
+  </div>
+
+  <div class="panel section">
+    <h2>Recent trades</h2>
+    <table>
+      <thead><tr><th>Symbol</th><th>Side</th><th>Vol</th><th>Entry</th><th>Exit</th><th>P/L</th><th>Reason</th><th>Closed</th></tr></thead>
+      <tbody id="trades"></tbody>
+    </table>
+  </div>
+
+  <footer>
+    Demo-first. Nothing here is financial advice. Kill switch closes every bot position immediately.
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const money = (n) => (n === null || n === undefined || isNaN(n)) ? "—"
+  : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let chart, series;
+function initChart() {
+  const el = $("chart");
+  chart = LightweightCharts.createChart(el, {
+    width: el.clientWidth, height: 300,
+    layout: { background: { color: "#0e131c" }, textColor: "#7d8ba2" },
+    grid: { vertLines: { color: "#131a24" }, horzLines: { color: "#131a24" } },
+    rightPriceScale: { borderColor: "#1c2534" },
+    timeScale: { borderColor: "#1c2534", timeVisible: true },
+    crosshair: { mode: 0 },
+  });
+  series = chart.addAreaSeries({
+    lineColor: "#3ddc84", lineWidth: 2,
+    topColor: "rgba(61,220,132,0.30)", bottomColor: "rgba(61,220,132,0.02)",
+    priceFormat: { type: "price", precision: 2 },
+  });
+  new ResizeObserver(() => chart.applyOptions({ width: el.clientWidth })).observe(el);
+}
+
+function setPill(dotId, textId, state) {
+  const dot = $(dotId), text = $(textId);
+  dot.className = "dot " + state.cls;
+  text.textContent = state.text;
+}
+
+function render(s) {
+  const acc = s.account;
+  const connected = s.connected && acc;
+
+  setPill("connDot", "connText", connected
+    ? { cls: acc.demo ? "ok" : "warn", text: (acc.demo ? "DEMO" : "LIVE!") + " · " + acc.server }
+    : { cls: "bad", text: "MT5 offline" });
+
+  $("modePill").textContent = "mode: " + s.mode + (s.auto_trade ? " · auto" : " · read-only");
+  $("statePill").textContent = s.paused ? "paused" : s.status;
+
+  const banner = $("banner");
+  const messages = [];
+  if (!s.auto_trade) messages.push("AUTO_TRADE=0 — the bot is watching only and will not place orders.");
+  if (s.paused) messages.push("Engine is paused" + (s.error ? ": " + s.error : "."));
+  else if (s.error && !connected) messages.push("MT5 error: " + s.error);
+  banner.textContent = messages.join(" ");
+  banner.classList.toggle("show", messages.length > 0);
+
+  if (connected) {
+    $("balance").textContent = money(acc.balance);
+    $("equity").textContent = money(acc.equity);
+    $("server").textContent = "login " + acc.login + " · " + acc.currency;
+    $("freeMargin").textContent = "free margin " + money(acc.free_margin) + " · 1:" + acc.leverage;
+  }
+
+  const floating = Number(s.floating || 0);
+  const dayPnl = Number(s.day_pnl || 0);
+  ["floating", "dayPnl"].forEach((id) => {
+    const el = $(id);
+    const val = id === "floating" ? floating : dayPnl;
+    el.textContent = (val >= 0 ? "+" : "") + money(val);
+    el.className = "value " + (val > 0 ? "up" : val < 0 ? "down" : "");
+  });
+  $("openCount").textContent = (s.positions || []).length + " open position(s)";
+
+  $("positions").innerHTML = (s.positions || []).length
+    ? s.positions.map((p) => `
+      <tr>
+        <td>${esc(p.symbol)}</td>
+        <td class="${p.side === "buy" ? "up" : "down"}">${esc(p.side)}</td>
+        <td>${money(p.volume)}</td>
+        <td>${money(p.entry)}</td>
+        <td>${money(p.current)}</td>
+        <td>${money(p.sl)}</td>
+        <td>${money(p.tp)}</td>
+        <td class="${p.profit >= 0 ? "up" : "down"}">${money(p.profit)}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="8" class="empty">No open positions</td></tr>`;
+
+  $("trades").innerHTML = (s.trades || []).length
+    ? s.trades.map((t) => `
+      <tr>
+        <td>${esc(t.symbol)}</td>
+        <td class="${t.side === "buy" ? "up" : "down"}">${esc(t.side)}</td>
+        <td>${money(t.volume)}</td>
+        <td>${money(t.entry)}</td>
+        <td>${t.exit === null ? "—" : money(t.exit)}</td>
+        <td class="${(t.pnl || 0) >= 0 ? "up" : "down"}">${t.pnl === null ? "—" : money(t.pnl)}</td>
+        <td>${esc(t.reason || "open")}</td>
+        <td>${t.closed_at ? new Date(t.closed_at).toLocaleString() : "—"}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="8" class="empty">No trades yet</td></tr>`;
+
+  const notes = Object.entries(s.notes || {});
+  $("notes").innerHTML = notes.length
+    ? notes.map(([k, v]) => `<div class="note"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join("")
+    : `<div class="empty">no decisions yet</div>`;
+
+  // ---- live readout: what the engine sees right now -------------------
+  const st = s.strategy || {};
+  const decisions = Object.values(s.decisions || {});
+  const chips = [];
+  if (st.timeframe) chips.push(`TF <b>${esc(st.timeframe)}</b>`);
+  if (st.session) chips.push(`session <b>${esc(st.session)}</b>`);
+  if (st.max_open) chips.push(`max open <b>${st.max_open}</b>`);
+  if (st.daily_loss_pct) chips.push(`daily stop <b>-${st.daily_loss_pct}%</b>`);
+  decisions.forEach((d) => {
+    chips.push(`${esc(d.symbol)} · risk <b>${d.risk_pct}%</b> · stop <b>${d.stop_atr}×ATR</b>` +
+      ` · target <b>${d.rr}R</b> · trail <b>${d.trail_atr}×ATR</b> · breakout <b>${d.lookback} bars</b>`);
+  });
+  $("strategyStrip").innerHTML = chips.map((c) => `<span class="chip">${c}</span>`).join("");
+
+  $("decisions").innerHTML = decisions.length
+    ? decisions.map((d) => {
+        const up = d.price ? ((d.trigger_up - d.price) / d.price) * 100 : 0;
+        const dn = d.price ? ((d.price - d.trigger_down) / d.price) * 100 : 0;
+        const fmt = (v) => (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
+        return `
+        <tr>
+          <td><b>${esc(d.symbol)}</b></td>
+          <td class="${d.trend === "up" ? "up" : "down"}">${d.trend === "up" ? "▲ up" : "▼ down"}</td>
+          <td class="${d.adx >= d.adx_min ? "up" : ""}">${d.adx}<span class="chip" style="margin-left:6px">min ${d.adx_min}</span></td>
+          <td>${money(d.atr)}</td>
+          <td>${money(d.price)}</td>
+          <td class="${Math.abs(up) < 0.25 ? "near" : ""}">${money(d.trigger_up)} <span class="chip">${fmt(up)}</span></td>
+          <td class="${Math.abs(dn) < 0.25 ? "near" : ""}">${money(d.trigger_down)} <span class="chip">${fmt(dn)}</span></td>
+          <td class="${d.spread_ok ? "up" : "down"}">${d.spread} pts</td>
+          <td>${esc(d.action)}${d.session_ok ? "" : ` <span class="chip">${esc(d.session)}</span>`}</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="9" class="empty">engine warming up…</td></tr>`;
+
+  const points = (s.equity || [])
+    .map((p) => ({ time: Math.floor(new Date(p.time).getTime() / 1000), value: p.value }))
+    .filter((p) => Number.isFinite(p.time))
+    .sort((a, b) => a.time - b.time);
+  const unique = [];
+  for (const p of points) {
+    if (unique.length && unique[unique.length - 1].time === p.time) unique[unique.length - 1] = p;
+    else unique.push(p);
+  }
+  if (unique.length) series.setData(unique);
+}
+
+async function post(path) {
+  try {
+    const r = await fetch(path, { method: "POST" });
+    return await r.json();
+  } catch (e) {
+    alert("Request failed: " + e.message);
+  }
+}
+
+$("pauseBtn").onclick = () => post("/api/pause");
+$("resumeBtn").onclick = () => post("/api/resume");
+$("killBtn").onclick = () => {
+  if (confirm("Close EVERY open bot position and pause the engine?")) post("/api/kill");
+};
+
+async function loop() {
+  try {
+    const res = await fetch("/api/state", { cache: "no-store" });
+    render(await res.json());
+  } catch (e) {
+    setPill("connDot", "connText", { cls: "bad", text: "dashboard offline" });
+  }
+  setTimeout(loop, 3000);
+}
+
+initChart();
+loop();
+</script>
+</body>
+</html>
