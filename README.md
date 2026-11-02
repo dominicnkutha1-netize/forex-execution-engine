@@ -1,7 +1,7 @@
-# Forex Bot (Exness / MetaTrader 5)
+# Forex Execution Engine (Exness / MetaTrader 5)
 
-A small, deliberately boring forex + gold bot that runs against your **Exness demo**
-through the MetaTrader 5 terminal, with a live dashboard.
+A small, deliberately boring forex + gold execution engine that runs against your
+**Exness demo** through the MetaTrader 5 terminal, with a live dashboard.
 
 It is not a money printer. It is a risk-managed execution engine you can watch,
 backtest, pause and kill. Read the safety section before you do anything.
@@ -67,7 +67,7 @@ python --version
 ## 3. Install
 
 ```cmd
-cd forex-bot-mt5
+cd forex-execution-engine
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
